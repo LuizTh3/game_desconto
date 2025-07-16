@@ -305,11 +305,81 @@
         // Lista de descontos disponíveis
         const discounts = [5, 10, 15, 20, 25, 30, 35, 40, 45, 50, 60, 70];
         
-        // Função para gerar código único
-        function generateUniqueCode() {
-            const timestamp = Date.now().toString(36);
-            const randomStr = Math.random().toString(36).substr(2, 5);
-            return `DESC-${timestamp}-${randomStr}`.toUpperCase();
+        // Função para gerar código determinístico
+        function generateDeterministicCode(desconto, timestamp) {
+            // Cria um hash simples baseado no desconto e timestamp
+            const data = `${desconto}${Math.floor(timestamp / 1000)}`;
+            let hash = 0;
+            for (let i = 0; i < data.length; i++) {
+                const char = data.charCodeAt(i);
+                hash = ((hash << 5) - hash) + char;
+                hash = hash & hash; // Converte para 32bit
+            }
+            
+            // Converte para string base36 e pega os primeiros 6 caracteres
+            const hashStr = Math.abs(hash).toString(36).toUpperCase().padStart(6, '0').substr(0, 6);
+            
+            // Formato: DESC-DESCONTO-HASH-TIMESTAMP
+            const timeStr = Math.floor(timestamp / 1000).toString(36).toUpperCase();
+            return `DESC-${desconto}-${hashStr}-${timeStr}`;
+        }
+        
+        // Função para validar código determinístico
+        function validateDeterministicCode(codigo) {
+            try {
+                const parts = codigo.split('-');
+                if (parts.length !== 4 || parts[0] !== 'DESC') {
+                    return null;
+                }
+                
+                const desconto = parseInt(parts[1]);
+                const hashRecebido = parts[2];
+                const timeStr = parts[3];
+                
+                // Reconstrói o timestamp
+                const timestamp = parseInt(timeStr, 36) * 1000;
+                
+                // Verifica se o desconto é válido
+                if (!discounts.includes(desconto)) {
+                    return null;
+                }
+                
+                // Verifica se não expirou (24 horas)
+                const agora = Date.now();
+                const umDia = 24 * 60 * 60 * 1000;
+                if (agora - timestamp > umDia) {
+                    return { expired: true };
+                }
+                
+                // Reconstrói o hash esperado
+                const data = `${desconto}${Math.floor(timestamp / 1000)}`;
+                let hash = 0;
+                for (let i = 0; i < data.length; i++) {
+                    const char = data.charCodeAt(i);
+                    hash = ((hash << 5) - hash) + char;
+                    hash = hash & hash;
+                }
+                
+                const hashEsperado = Math.abs(hash).toString(36).toUpperCase().padStart(6, '0').substr(0, 6);
+                
+                // Verifica se o hash confere
+                if (hashRecebido !== hashEsperado) {
+                    return null;
+                }
+                
+                // Formata os dígitos para exibição
+                const digits = desconto.toString().padStart(2, '0').split('');
+                
+                return {
+                    desconto: desconto,
+                    timestamp: timestamp,
+                    digits: digits,
+                    valid: true
+                };
+                
+            } catch (e) {
+                return null;
+            }
         }
         
         // Elementos do DOM
@@ -410,15 +480,16 @@
                     createParticles();
                 }
                 
-                // Gera código único para este resultado
-                const uniqueCode = generateUniqueCode();
+                // Gera código determinístico para este resultado
+                const timestamp = Date.now();
+                const uniqueCode = generateDeterministicCode(randomDiscount, timestamp);
                 const resultData = {
                     codigo: uniqueCode,
                     desconto: randomDiscount,
                     mensagem: message,
                     isWinner: isWinner,
                     digits: digits,
-                    timestamp: new Date().toISOString(),
+                    timestamp: timestamp,
                     usado: false
                 };
                 
@@ -426,10 +497,10 @@
                 localStorage.setItem('jaJogou', 'true');
                 localStorage.setItem('resultadoJogada', JSON.stringify(resultData));
                 
-                // Salva o resultado também em uma lista global para validação
-                const resultados = JSON.parse(localStorage.getItem('todosResultados') || '{}');
-                resultados[uniqueCode] = resultData;
-                localStorage.setItem('todosResultados', JSON.stringify(resultados));
+                // Salva o resultado também em uma lista local para controle de uso
+                const resultados = JSON.parse(localStorage.getItem('codigosUsados') || '{}');
+                resultados[uniqueCode] = { usado: false, timestamp: timestamp };
+                localStorage.setItem('codigosUsados', JSON.stringify(resultados));
                 
                 // Desabilita o botão permanentemente
                 spinButton.disabled = true;
@@ -528,7 +599,7 @@
         document.getElementById('resetButton').addEventListener('click', function() {
             localStorage.removeItem('jaJogou');
             localStorage.removeItem('resultadoJogada');
-            localStorage.removeItem('todosResultados');
+            localStorage.removeItem('codigosUsados');
             location.reload();
         });
 
@@ -663,12 +734,9 @@
         
         // Função para marcar código como usado
         function marcarComoUsado(codigo) {
-            const resultados = JSON.parse(localStorage.getItem('todosResultados') || '{}');
-            if (resultados[codigo]) {
-                resultados[codigo].usado = true;
-                localStorage.setItem('todosResultados', JSON.stringify(resultados));
-                location.reload();
-            }
+            const codigosUsados = JSON.parse(localStorage.getItem('codigosUsados') || '{}');
+            codigosUsados[codigo] = { usado: true, timestamp: Date.now() };
+            localStorage.setItem('codigosUsados', JSON.stringify(codigosUsados));
         }
         
         // Função para verificar acesso administrativo
@@ -852,50 +920,65 @@
                 return;
             }
             
-            const resultados = JSON.parse(localStorage.getItem('todosResultados') || '{}');
-            const resultado = resultados[codigo];
+            // Primeiro valida se o código é válido usando a função determinística
+            const validationResult = validateDeterministicCode(codigo);
             
-            if (resultado) {
-                resultDiv.innerHTML = `
-                    <div style="background: #27ae60; color: white; padding: 20px; border-radius: 10px; margin: 20px 0;">
-                        <h3>✅ CÓDIGO VÁLIDO</h3>
-                        <div style="font-size: 3em; margin: 20px 0;">
-                            ${resultado.digits[0]}${resultado.digits[1]}%
-                        </div>
-                        <p style="font-size: 1.2em; margin: 10px 0;">
-                            Desconto: ${resultado.desconto}%
-                        </p>
-                        <p style="font-size: 0.9em; opacity: 0.8;">
-                            Criado em: ${new Date(resultado.timestamp).toLocaleString()}
-                        </p>
-                        <p style="font-size: 0.9em; opacity: 0.8;">
-                            Status: ${resultado.usado ? '❌ Já utilizado' : '✅ Disponível'}
-                        </p>
-                        ${!resultado.usado ? `
-                            <button onclick="marcarComoUsadoAdmin('${codigo}')" style="
-                                background: #e74c3c;
-                                color: white;
-                                border: none;
-                                padding: 15px 30px;
-                                border-radius: 10px;
-                                cursor: pointer;
-                                font-size: 1.1em;
-                                font-weight: bold;
-                                margin: 10px;
-                            ">
-                                ✅ MARCAR COMO USADO
-                            </button>
-                        ` : ''}
-                    </div>
-                `;
-            } else {
+            if (!validationResult) {
                 resultDiv.innerHTML = `
                     <div style="background: #e74c3c; color: white; padding: 20px; border-radius: 10px; margin: 20px 0;">
                         <h3>❌ CÓDIGO INVÁLIDO</h3>
                         <p>Este código não existe ou não é válido.</p>
                     </div>
                 `;
+                return;
             }
+            
+            if (validationResult.expired) {
+                resultDiv.innerHTML = `
+                    <div style="background: #e74c3c; color: white; padding: 20px; border-radius: 10px; margin: 20px 0;">
+                        <h3>⏰ CÓDIGO EXPIRADO</h3>
+                        <p>Este código expirou. Os códigos são válidos por 24 horas.</p>
+                    </div>
+                `;
+                return;
+            }
+            
+            // Verifica se o código já foi usado (localStorage local)
+            const codigosUsados = JSON.parse(localStorage.getItem('codigosUsados') || '{}');
+            const jaUsado = codigosUsados[codigo] && codigosUsados[codigo].usado;
+            
+            resultDiv.innerHTML = `
+                <div style="background: #27ae60; color: white; padding: 20px; border-radius: 10px; margin: 20px 0;">
+                    <h3>✅ CÓDIGO VÁLIDO</h3>
+                    <div style="font-size: 3em; margin: 20px 0;">
+                        ${validationResult.digits[0]}${validationResult.digits[1]}%
+                    </div>
+                    <p style="font-size: 1.2em; margin: 10px 0;">
+                        Desconto: ${validationResult.desconto}%
+                    </p>
+                    <p style="font-size: 0.9em; opacity: 0.8;">
+                        Criado em: ${new Date(validationResult.timestamp).toLocaleString()}
+                    </p>
+                    <p style="font-size: 0.9em; opacity: 0.8;">
+                        Status: ${jaUsado ? '❌ Já utilizado neste dispositivo' : '✅ Disponível'}
+                    </p>
+                    ${!jaUsado ? `
+                        <button onclick="marcarComoUsadoAdmin('${codigo}')" style="
+                            background: #e74c3c;
+                            color: white;
+                            border: none;
+                            padding: 15px 30px;
+                            border-radius: 10px;
+                            cursor: pointer;
+                            font-size: 1.1em;
+                            font-weight: bold;
+                            margin: 10px;
+                        ">
+                            ✅ MARCAR COMO USADO
+                        </button>
+                    ` : ''}
+                </div>
+            `;
         }
         
         // Função para marcar como usado no painel admin
