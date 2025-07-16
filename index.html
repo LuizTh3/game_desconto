@@ -285,8 +285,8 @@
             <div class="result" id="result"></div>
             
             <div class="discount-list">
-                <h3>🎁 Descontos Disponíveis:</h3>
-                <p>5%, 10%, 15%, 20%, 25%, 30%, 35%, 40%, 45%, 50%, 60%, 70%</p>
+                <h3>🎁 Cupons Disponíveis:</h3>
+                <p id="cuponsDisponiveis">Carregando cupons...</p>
             </div>
             
             <!-- Botão temporário para testes -->
@@ -439,6 +439,15 @@
                 return;
             }
             
+            // Verifica se há cupons disponíveis
+            const cupons = JSON.parse(localStorage.getItem('cuponsDisponiveis') || '[]');
+            const cuponsDisponiveis = cupons.filter(c => (c.quantidade - c.usado) > 0);
+            
+            if (cuponsDisponiveis.length === 0) {
+                alert('Não há cupons disponíveis no momento. Tente novamente mais tarde!');
+                return;
+            }
+            
             // Desabilita o botão
             spinButton.disabled = true;
             spinButton.textContent = '🎰 GIRANDO...';
@@ -446,11 +455,11 @@
             // Esconde resultado anterior
             result.classList.remove('show', 'winner');
             
-            // Sorteia um desconto aleatório
-            const randomDiscount = discounts[Math.floor(Math.random() * discounts.length)];
+            // Sorteia um cupom aleatório dos disponíveis
+            const cupomSorteado = cuponsDisponiveis[Math.floor(Math.random() * cuponsDisponiveis.length)];
             
             // Separa os dígitos do desconto
-            const digits = randomDiscount.toString().padStart(2, '0').split('');
+            const digits = cupomSorteado.desconto.toString().padStart(2, '0').split('');
             
             // Anima os rolos com durações diferentes
             animateReel(reel1, 1000, digits[0]);
@@ -462,14 +471,14 @@
                 let message = '';
                 let isWinner = false;
                 
-                if (randomDiscount >= 50) {
-                    message = `🎉 PARABÉNS! Você ganhou ${randomDiscount}% de desconto! 🎉`;
+                if (cupomSorteado.desconto >= 50) {
+                    message = `🎉 PARABÉNS! Você ganhou o cupom "${cupomSorteado.nome}" de ${cupomSorteado.desconto}% de desconto! 🎉`;
                     isWinner = true;
-                } else if (randomDiscount >= 30) {
-                    message = `🎊 Ótimo! Você ganhou ${randomDiscount}% de desconto! 🎊`;
+                } else if (cupomSorteado.desconto >= 30) {
+                    message = `🎊 Ótimo! Você ganhou o cupom "${cupomSorteado.nome}" de ${cupomSorteado.desconto}% de desconto! 🎊`;
                     isWinner = true;
                 } else {
-                    message = `🎁 Você ganhou ${randomDiscount}% de desconto!`;
+                    message = `🎁 Você ganhou o cupom "${cupomSorteado.nome}" de ${cupomSorteado.desconto}% de desconto!`;
                 }
                 
                 result.textContent = message;
@@ -480,27 +489,22 @@
                     createParticles();
                 }
                 
-                // Gera código determinístico para este resultado
-                const timestamp = Date.now();
-                const uniqueCode = generateDeterministicCode(randomDiscount, timestamp);
+                // Consome o cupom (decrementa quantidade)
+                consumirCupom(cupomSorteado.id);
+                
                 const resultData = {
-                    codigo: uniqueCode,
-                    desconto: randomDiscount,
+                    cupomNome: cupomSorteado.nome,
+                    cupomId: cupomSorteado.id,
+                    desconto: cupomSorteado.desconto,
                     mensagem: message,
                     isWinner: isWinner,
                     digits: digits,
-                    timestamp: timestamp,
-                    usado: false
+                    timestamp: Date.now()
                 };
                 
                 // Marca que o usuário já jogou e salva o resultado
                 localStorage.setItem('jaJogou', 'true');
                 localStorage.setItem('resultadoJogada', JSON.stringify(resultData));
-                
-                // Salva o resultado também em uma lista local para controle de uso
-                const resultados = JSON.parse(localStorage.getItem('codigosUsados') || '{}');
-                resultados[uniqueCode] = { usado: false, timestamp: timestamp };
-                localStorage.setItem('codigosUsados', JSON.stringify(resultados));
                 
                 // Desabilita o botão permanentemente
                 spinButton.disabled = true;
@@ -508,13 +512,24 @@
                 
                 // Adiciona botões de compartilhamento
                 setTimeout(() => {
-                    addShareButtons(uniqueCode, randomDiscount);
+                    addShareButtons(cupomSorteado.nome, cupomSorteado.desconto);
                 }, 1000);
             }, 2500);
         }
+        
+        // Função para consumir cupom
+        function consumirCupom(cupomId) {
+            const cupons = JSON.parse(localStorage.getItem('cuponsDisponiveis') || '[]');
+            const cupom = cupons.find(c => c.id === cupomId);
+            
+            if (cupom) {
+                cupom.usado += 1;
+                localStorage.setItem('cuponsDisponiveis', JSON.stringify(cupons));
+            }
+        }
 
         // Função para adicionar botões de compartilhamento
-        function addShareButtons(codigo, desconto) {
+        function addShareButtons(cupomNome, desconto) {
             const shareContainer = document.createElement('div');
             shareContainer.id = 'shareContainer';
             shareContainer.style.cssText = `
@@ -541,7 +556,7 @@
                 font-size: 1.1em;
                 font-weight: bold;
             `;
-            codeDisplay.textContent = `Código: ${codigo}`;
+            codeDisplay.textContent = `Cupom: ${cupomNome}`;
             
             const whatsappButton = document.createElement('button');
             whatsappButton.textContent = '📱 Compartilhar no WhatsApp';
@@ -558,12 +573,12 @@
             `;
             
             whatsappButton.onclick = () => {
-                const message = `🎰 Ganhei ${desconto}% de desconto na roleta!\n\nCódigo de desconto: ${codigo}\n\nApresente este código na loja para utilizar seu desconto!`;
+                const message = `🎰 Ganhei ${desconto}% de desconto na roleta!\n\nCupom: ${cupomNome}\n\nApresente este cupom na loja para utilizar seu desconto!`;
                 window.open(`https://wa.me/?text=${encodeURIComponent(message)}`);
             };
             
             const copyButton = document.createElement('button');
-            copyButton.textContent = '📋 Copiar Código';
+            copyButton.textContent = '📋 Copiar Cupom';
             copyButton.style.cssText = `
                 background: #3498db;
                 color: white;
@@ -577,10 +592,10 @@
             `;
             
             copyButton.onclick = () => {
-                navigator.clipboard.writeText(codigo);
+                navigator.clipboard.writeText(cupomNome);
                 copyButton.textContent = '✅ Copiado!';
                 setTimeout(() => {
-                    copyButton.textContent = '📋 Copiar Código';
+                    copyButton.textContent = '📋 Copiar Cupom';
                 }, 2000);
             };
             
@@ -629,7 +644,7 @@
                     
                     // Adiciona botões de compartilhamento
                     setTimeout(() => {
-                        addShareButtons(resultData.codigo, resultData.desconto);
+                        addShareButtons(resultData.cupomNome, resultData.desconto);
                     }, 500);
                 } else {
                     // Fallback se não houver resultado salvo
@@ -658,6 +673,29 @@
                 animateReel(reel2, 700, '0');
                 animateReel(reel3, 900, '%');
             }, 500);
+        }
+        
+        // Atualiza lista de cupons disponíveis na página principal
+        function atualizarCuponsDisponiveis() {
+            const cupons = JSON.parse(localStorage.getItem('cuponsDisponiveis') || '[]');
+            const cuponsDisponiveis = cupons.filter(c => (c.quantidade - c.usado) > 0);
+            const container = document.getElementById('cuponsDisponiveis');
+            
+            if (cuponsDisponiveis.length === 0) {
+                container.textContent = 'Nenhum cupom disponível no momento.';
+                container.style.color = '#e74c3c';
+            } else {
+                // Mostra apenas o desconto, não o nome do cupom
+                const descontos = cuponsDisponiveis.map(c => `${c.desconto}%`);
+                const descountosUnicos = [...new Set(descontos)].sort((a, b) => parseInt(a) - parseInt(b));
+                container.textContent = descountosUnicos.join(', ');
+                container.style.color = '#ecf0f1';
+            }
+        }
+        
+        // Atualiza a lista na página principal se não for admin
+        if (!urlParams.get('admin') && !validateCode) {
+            atualizarCuponsDisponiveis();
         }
         
         // Função para mostrar página de validação
@@ -837,77 +875,105 @@
         function showAdminPage() {
             document.querySelector('.slot-content').innerHTML = `
                 <h1 class="title">🔧 PAINEL ADMINISTRATIVO</h1>
-                <p class="subtitle">Validação de códigos de desconto</p>
+                <p class="subtitle">Gerenciamento de cupons de desconto</p>
                 
                 <div class="reels-container">
                     <div style="text-align: center; padding: 20px;">
-                        <div style="margin: 20px 0;">
-                            <label style="color: #ecf0f1; font-size: 1.1em; display: block; margin-bottom: 10px;">
-                                Digite o código para validar:
-                            </label>
-                            <input type="text" id="codeInput" placeholder="Ex: DESC-ABC123-XYZ" style="
-                                padding: 15px;
-                                font-size: 1.1em;
-                                border: 2px solid #3498db;
-                                border-radius: 8px;
-                                width: 300px;
-                                max-width: 90%;
-                                text-align: center;
-                                font-family: monospace;
-                                text-transform: uppercase;
-                            ">
+                        
+                        <!-- Seção de Criação de Cupons -->
+                        <div style="background: rgba(255,255,255,0.1); padding: 20px; border-radius: 10px; margin: 20px 0;">
+                            <h3 style="color: #f39c12; margin-bottom: 15px;">➕ CRIAR NOVO CUPOM</h3>
+                            
+                            <div style="display: flex; gap: 10px; justify-content: center; align-items: end; flex-wrap: wrap;">
+                                <div>
+                                    <label style="color: #ecf0f1; font-size: 0.9em; display: block;">Nome do Cupom:</label>
+                                    <input type="text" id="cupomNome" placeholder="Ex: DESCONTO10" style="
+                                        padding: 10px;
+                                        font-size: 1em;
+                                        border: 2px solid #3498db;
+                                        border-radius: 5px;
+                                        width: 150px;
+                                        text-align: center;
+                                        text-transform: uppercase;
+                                    ">
+                                </div>
+                                
+                                <div>
+                                    <label style="color: #ecf0f1; font-size: 0.9em; display: block;">Desconto (%):</label>
+                                    <input type="number" id="cupomDesconto" placeholder="10" min="1" max="100" style="
+                                        padding: 10px;
+                                        font-size: 1em;
+                                        border: 2px solid #3498db;
+                                        border-radius: 5px;
+                                        width: 80px;
+                                        text-align: center;
+                                    ">
+                                </div>
+                                
+                                <div>
+                                    <label style="color: #ecf0f1; font-size: 0.9em; display: block;">Quantidade:</label>
+                                    <input type="number" id="cupomQuantidade" placeholder="10" min="1" max="1000" style="
+                                        padding: 10px;
+                                        font-size: 1em;
+                                        border: 2px solid #3498db;
+                                        border-radius: 5px;
+                                        width: 80px;
+                                        text-align: center;
+                                    ">
+                                </div>
+                                
+                                <button onclick="criarCupom()" style="
+                                    background: #27ae60;
+                                    color: white;
+                                    border: none;
+                                    padding: 10px 20px;
+                                    border-radius: 5px;
+                                    cursor: pointer;
+                                    font-size: 1em;
+                                    font-weight: bold;
+                                ">
+                                    ➕ CRIAR
+                                </button>
+                            </div>
                         </div>
                         
-                        <button onclick="validateCodeFromInput()" style="
-                            background: #27ae60;
-                            color: white;
-                            border: none;
-                            padding: 15px 30px;
-                            border-radius: 10px;
-                            cursor: pointer;
-                            font-size: 1.1em;
-                            font-weight: bold;
-                            margin: 10px;
-                        ">
-                            🔍 VALIDAR CÓDIGO
-                        </button>
+                        <!-- Lista de Cupons -->
+                        <div id="cuponsLista" style="margin: 20px 0;"></div>
                         
-                        <div id="validationResult" style="margin-top: 20px;"></div>
-                        
-                        <button onclick="location.href='${window.location.pathname}'" style="
-                            background: #3498db;
-                            color: white;
-                            border: none;
-                            padding: 15px 30px;
-                            border-radius: 10px;
-                            cursor: pointer;
-                            font-size: 1.1em;
-                            font-weight: bold;
-                            margin: 10px;
-                        ">
-                            🎰 VOLTAR À ROLETA
-                        </button>
-                        
-                        <button onclick="logoutAdmin()" style="
-                            background: #e74c3c;
-                            color: white;
-                            border: none;
-                            padding: 10px 20px;
-                            border-radius: 5px;
-                            cursor: pointer;
-                            font-size: 0.9em;
-                            margin: 10px;
-                        ">
-                            🚪 SAIR DO ADMIN
-                        </button>
+                        <div style="margin-top: 30px;">
+                            <button onclick="location.href='${window.location.pathname}'" style="
+                                background: #3498db;
+                                color: white;
+                                border: none;
+                                padding: 15px 30px;
+                                border-radius: 10px;
+                                cursor: pointer;
+                                font-size: 1.1em;
+                                font-weight: bold;
+                                margin: 10px;
+                            ">
+                                🎰 VOLTAR À ROLETA
+                            </button>
+                            
+                            <button onclick="logoutAdmin()" style="
+                                background: #e74c3c;
+                                color: white;
+                                border: none;
+                                padding: 10px 20px;
+                                border-radius: 5px;
+                                cursor: pointer;
+                                font-size: 0.9em;
+                                margin: 10px;
+                            ">
+                                🚪 SAIR DO ADMIN
+                            </button>
+                        </div>
                     </div>
                 </div>
             `;
             
-            // Foco no input
-            setTimeout(() => {
-                document.getElementById('codeInput').focus();
-            }, 100);
+            // Carrega e exibe a lista de cupons
+            atualizarListaCupons();
         }
         
         // Função para validar código digitado
@@ -993,6 +1059,142 @@
         function logoutAdmin() {
             localStorage.removeItem('adminAuthorized');
             location.href = window.location.pathname;
+        }
+        
+        // Função para criar cupom
+        function criarCupom() {
+            const nome = document.getElementById('cupomNome').value.trim().toUpperCase();
+            const desconto = parseInt(document.getElementById('cupomDesconto').value);
+            const quantidade = parseInt(document.getElementById('cupomQuantidade').value);
+            
+            if (!nome || !desconto || !quantidade) {
+                alert('Por favor, preencha todos os campos!');
+                return;
+            }
+            
+            if (desconto < 1 || desconto > 100) {
+                alert('Desconto deve ser entre 1% e 100%!');
+                return;
+            }
+            
+            if (quantidade < 1) {
+                alert('Quantidade deve ser maior que 0!');
+                return;
+            }
+            
+            // Pega cupons existentes
+            const cupons = JSON.parse(localStorage.getItem('cuponsDisponiveis') || '[]');
+            
+            // Verifica se já existe um cupom com esse nome
+            const existente = cupons.find(c => c.nome === nome);
+            if (existente) {
+                // Adiciona à quantidade existente
+                existente.quantidade += quantidade;
+            } else {
+                // Cria novo cupom
+                cupons.push({
+                    nome: nome,
+                    desconto: desconto,
+                    quantidade: quantidade,
+                    usado: 0,
+                    id: Date.now()
+                });
+            }
+            
+            // Salva no localStorage
+            localStorage.setItem('cuponsDisponiveis', JSON.stringify(cupons));
+            
+            // Limpa os campos
+            document.getElementById('cupomNome').value = '';
+            document.getElementById('cupomDesconto').value = '';
+            document.getElementById('cupomQuantidade').value = '';
+            
+            // Atualiza a lista
+            atualizarListaCupons();
+        }
+        
+        // Função para atualizar lista de cupons
+        function atualizarListaCupons() {
+            const cupons = JSON.parse(localStorage.getItem('cuponsDisponiveis') || '[]');
+            const container = document.getElementById('cuponsLista');
+            
+            if (cupons.length === 0) {
+                container.innerHTML = `
+                    <div style="background: rgba(255,255,255,0.1); padding: 20px; border-radius: 10px; color: #ecf0f1;">
+                        <h3 style="color: #f39c12;">📋 NENHUM CUPOM CRIADO</h3>
+                        <p>Crie cupons usando o formulário acima.</p>
+                    </div>
+                `;
+                return;
+            }
+            
+            let html = `
+                <div style="background: rgba(255,255,255,0.1); padding: 20px; border-radius: 10px;">
+                    <h3 style="color: #f39c12; margin-bottom: 15px;">📋 CUPONS CADASTRADOS</h3>
+                    <div style="display: grid; gap: 10px;">
+            `;
+            
+            cupons.forEach(cupom => {
+                const disponivel = cupom.quantidade - cupom.usado;
+                const esgotado = disponivel <= 0;
+                
+                html += `
+                    <div style="
+                        background: ${esgotado ? '#e74c3c' : '#27ae60'};
+                        color: white;
+                        padding: 15px;
+                        border-radius: 8px;
+                        display: flex;
+                        justify-content: space-between;
+                        align-items: center;
+                        flex-wrap: wrap;
+                        gap: 10px;
+                    ">
+                        <div>
+                            <strong style="font-size: 1.1em;">${cupom.nome}</strong>
+                            <span style="background: rgba(255,255,255,0.2); padding: 2px 8px; border-radius: 3px; margin-left: 10px;">
+                                ${cupom.desconto}%
+                            </span>
+                        </div>
+                        <div style="text-align: right;">
+                            <div style="font-size: 0.9em; opacity: 0.8;">
+                                ${esgotado ? '❌ ESGOTADO' : '✅ DISPONÍVEL'}
+                            </div>
+                            <div style="font-size: 0.9em;">
+                                ${disponivel}/${cupom.quantidade} restantes
+                            </div>
+                        </div>
+                        <button onclick="removerCupom(${cupom.id})" style="
+                            background: rgba(255,255,255,0.2);
+                            color: white;
+                            border: none;
+                            padding: 5px 10px;
+                            border-radius: 3px;
+                            cursor: pointer;
+                            font-size: 0.8em;
+                        ">
+                            🗑️ REMOVER
+                        </button>
+                    </div>
+                `;
+            });
+            
+            html += `
+                    </div>
+                </div>
+            `;
+            
+            container.innerHTML = html;
+        }
+        
+        // Função para remover cupom
+        function removerCupom(id) {
+            if (confirm('Tem certeza que deseja remover este cupom?')) {
+                let cupons = JSON.parse(localStorage.getItem('cuponsDisponiveis') || '[]');
+                cupons = cupons.filter(c => c.id !== id);
+                localStorage.setItem('cuponsDisponiveis', JSON.stringify(cupons));
+                atualizarListaCupons();
+            }
         }
     </script>
 </body>
