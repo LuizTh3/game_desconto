@@ -288,12 +288,29 @@
                 <h3>🎁 Descontos Disponíveis:</h3>
                 <p>5%, 10%, 15%, 20%, 25%, 30%, 35%, 40%, 45%, 50%, 60%, 70%</p>
             </div>
+            
+            <!-- Botão temporário para testes -->
+            <button id="resetButton" style="margin-top: 20px; padding: 10px 20px; background: #e74c3c; color: white; border: none; border-radius: 5px; cursor: pointer; font-size: 0.9em;">
+                🗑️ LIMPAR RESULTADO (TESTE)
+            </button>
+            
+            <!-- Botão para acesso administrativo -->
+            <button onclick="location.href='?admin=true'" style="margin-top: 10px; padding: 10px 20px; background: #9b59b6; color: white; border: none; border-radius: 5px; cursor: pointer; font-size: 0.9em;">
+                🔧 ACESSO ADMIN
+            </button>
         </div>
     </div>
 
     <script>
         // Lista de descontos disponíveis
         const discounts = [5, 10, 15, 20, 25, 30, 35, 40, 45, 50, 60, 70];
+        
+        // Função para gerar código único
+        function generateUniqueCode() {
+            const timestamp = Date.now().toString(36);
+            const randomStr = Math.random().toString(36).substr(2, 5);
+            return `DESC-${timestamp}-${randomStr}`.toUpperCase();
+        }
         
         // Elementos do DOM
         const spinButton = document.getElementById('spinButton');
@@ -347,6 +364,11 @@
 
         // Função principal do caça-níquel
         function spin() {
+            // Verifica se o usuário já jogou
+            if (localStorage.getItem('jaJogou') === 'true') {
+                return;
+            }
+            
             // Desabilita o botão
             spinButton.disabled = true;
             spinButton.textContent = '🎰 GIRANDO...';
@@ -388,21 +410,507 @@
                     createParticles();
                 }
                 
-                // Reabilita o botão
-                spinButton.disabled = false;
-                spinButton.textContent = '🎰 GIRAR NOVAMENTE!';
+                // Gera código único para este resultado
+                const uniqueCode = generateUniqueCode();
+                const resultData = {
+                    codigo: uniqueCode,
+                    desconto: randomDiscount,
+                    mensagem: message,
+                    isWinner: isWinner,
+                    digits: digits,
+                    timestamp: new Date().toISOString(),
+                    usado: false
+                };
+                
+                // Marca que o usuário já jogou e salva o resultado
+                localStorage.setItem('jaJogou', 'true');
+                localStorage.setItem('resultadoJogada', JSON.stringify(resultData));
+                
+                // Salva o resultado também em uma lista global para validação
+                const resultados = JSON.parse(localStorage.getItem('todosResultados') || '{}');
+                resultados[uniqueCode] = resultData;
+                localStorage.setItem('todosResultados', JSON.stringify(resultados));
+                
+                // Desabilita o botão permanentemente
+                spinButton.disabled = true;
+                spinButton.textContent = '🎰 VOCÊ JÁ JOGOU!';
+                
+                // Adiciona botões de compartilhamento
+                setTimeout(() => {
+                    addShareButtons(uniqueCode, randomDiscount);
+                }, 1000);
             }, 2500);
+        }
+
+        // Função para adicionar botões de compartilhamento
+        function addShareButtons(codigo, desconto) {
+            const shareContainer = document.createElement('div');
+            shareContainer.id = 'shareContainer';
+            shareContainer.style.cssText = `
+                margin-top: 20px;
+                padding: 20px;
+                background: rgba(255, 255, 255, 0.1);
+                border-radius: 10px;
+                backdrop-filter: blur(10px);
+                text-align: center;
+            `;
+            
+            const shareTitle = document.createElement('h3');
+            shareTitle.textContent = '📱 Compartilhar Resultado';
+            shareTitle.style.cssText = 'color: #f39c12; margin-bottom: 15px; font-size: 1.2em;';
+            
+            const codeDisplay = document.createElement('div');
+            codeDisplay.style.cssText = `
+                background: #2c3e50;
+                color: #ecf0f1;
+                padding: 10px;
+                border-radius: 5px;
+                margin: 10px 0;
+                font-family: monospace;
+                font-size: 1.1em;
+                font-weight: bold;
+            `;
+            codeDisplay.textContent = `Código: ${codigo}`;
+            
+            const whatsappButton = document.createElement('button');
+            whatsappButton.textContent = '📱 Compartilhar no WhatsApp';
+            whatsappButton.style.cssText = `
+                background: #25d366;
+                color: white;
+                border: none;
+                padding: 12px 20px;
+                margin: 5px;
+                border-radius: 5px;
+                cursor: pointer;
+                font-size: 1em;
+                font-weight: bold;
+            `;
+            
+            whatsappButton.onclick = () => {
+                const message = `🎰 Ganhei ${desconto}% de desconto na roleta!\n\nCódigo de desconto: ${codigo}\n\nApresente este código na loja para utilizar seu desconto!`;
+                window.open(`https://wa.me/?text=${encodeURIComponent(message)}`);
+            };
+            
+            const copyButton = document.createElement('button');
+            copyButton.textContent = '📋 Copiar Código';
+            copyButton.style.cssText = `
+                background: #3498db;
+                color: white;
+                border: none;
+                padding: 12px 20px;
+                margin: 5px;
+                border-radius: 5px;
+                cursor: pointer;
+                font-size: 1em;
+                font-weight: bold;
+            `;
+            
+            copyButton.onclick = () => {
+                navigator.clipboard.writeText(codigo);
+                copyButton.textContent = '✅ Copiado!';
+                setTimeout(() => {
+                    copyButton.textContent = '📋 Copiar Código';
+                }, 2000);
+            };
+            
+            shareContainer.appendChild(shareTitle);
+            shareContainer.appendChild(codeDisplay);
+            shareContainer.appendChild(whatsappButton);
+            shareContainer.appendChild(copyButton);
+            
+            document.querySelector('.slot-content').appendChild(shareContainer);
         }
 
         // Event listener para o botão
         spinButton.addEventListener('click', spin);
+        
+        // Botão temporário para limpar resultado (testes)
+        document.getElementById('resetButton').addEventListener('click', function() {
+            localStorage.removeItem('jaJogou');
+            localStorage.removeItem('resultadoJogada');
+            localStorage.removeItem('todosResultados');
+            location.reload();
+        });
 
-        // Animação inicial dos rolos
-        setTimeout(() => {
-            animateReel(reel1, 500, '0');
-            animateReel(reel2, 700, '0');
-            animateReel(reel3, 900, '%');
-        }, 500);
+        // Verifica se o usuário já jogou ao carregar a página
+        function checkIfAlreadyPlayed() {
+            if (localStorage.getItem('jaJogou') === 'true') {
+                spinButton.disabled = true;
+                spinButton.textContent = '🎰 VOCÊ JÁ JOGOU!';
+                
+                // Recupera e mostra o resultado anterior
+                const savedResult = localStorage.getItem('resultadoJogada');
+                if (savedResult) {
+                    const resultData = JSON.parse(savedResult);
+                    
+                    // Mostra o resultado nos rolos
+                    reel1.querySelector('.reel-content').textContent = resultData.digits[0];
+                    reel2.querySelector('.reel-content').textContent = resultData.digits[1];
+                    reel3.querySelector('.reel-content').textContent = '%';
+                    
+                    // Mostra a mensagem do resultado
+                    result.textContent = resultData.mensagem;
+                    result.classList.add('show');
+                    
+                    if (resultData.isWinner) {
+                        result.classList.add('winner');
+                    }
+                    
+                    // Adiciona botões de compartilhamento
+                    setTimeout(() => {
+                        addShareButtons(resultData.codigo, resultData.desconto);
+                    }, 500);
+                } else {
+                    // Fallback se não houver resultado salvo
+                    result.textContent = 'Você já utilizou sua chance de jogar!';
+                    result.classList.add('show');
+                }
+            }
+        }
+
+        // Verifica se é uma página de validação
+        const urlParams = new URLSearchParams(window.location.search);
+        const validateCode = urlParams.get('validate');
+        
+        if (validateCode) {
+            // Modo validação para a loja
+            showValidationPage(validateCode);
+        } else if (urlParams.get('admin') === 'true') {
+            // Modo administrador para validação manual
+            checkAdminAccess();
+        } else if (localStorage.getItem('jaJogou') === 'true') {
+            checkIfAlreadyPlayed();
+        } else {
+            // Animação inicial dos rolos apenas se não jogou ainda
+            setTimeout(() => {
+                animateReel(reel1, 500, '0');
+                animateReel(reel2, 700, '0');
+                animateReel(reel3, 900, '%');
+            }, 500);
+        }
+        
+        // Função para mostrar página de validação
+        function showValidationPage(codigo) {
+            const resultados = JSON.parse(localStorage.getItem('todosResultados') || '{}');
+            const resultado = resultados[codigo];
+            
+            document.querySelector('.slot-content').innerHTML = `
+                <h1 class="title">🔍 VALIDAÇÃO DE DESCONTO</h1>
+                <p class="subtitle">Verificação do código de desconto</p>
+                
+                <div class="reels-container">
+                    <div style="text-align: center; padding: 20px;">
+                        <div style="background: #2c3e50; color: #ecf0f1; padding: 15px; border-radius: 5px; margin: 20px 0; font-family: monospace; font-size: 1.2em; font-weight: bold;">
+                            Código: ${codigo}
+                        </div>
+                        
+                        ${resultado ? `
+                            <div style="background: #27ae60; color: white; padding: 20px; border-radius: 10px; margin: 20px 0;">
+                                <h3>✅ CÓDIGO VÁLIDO</h3>
+                                <div style="font-size: 3em; margin: 20px 0;">
+                                    ${resultado.digits[0]}${resultado.digits[1]}%
+                                </div>
+                                <p style="font-size: 1.2em; margin: 10px 0;">
+                                    Desconto: ${resultado.desconto}%
+                                </p>
+                                <p style="font-size: 0.9em; opacity: 0.8;">
+                                    Criado em: ${new Date(resultado.timestamp).toLocaleString()}
+                                </p>
+                                <p style="font-size: 0.9em; opacity: 0.8;">
+                                    Status: ${resultado.usado ? '❌ Já utilizado' : '✅ Disponível'}
+                                </p>
+                            </div>
+                            
+                            ${!resultado.usado ? `
+                                <button onclick="marcarComoUsado('${codigo}')" style="
+                                    background: #e74c3c;
+                                    color: white;
+                                    border: none;
+                                    padding: 15px 30px;
+                                    border-radius: 10px;
+                                    cursor: pointer;
+                                    font-size: 1.1em;
+                                    font-weight: bold;
+                                    margin: 10px;
+                                ">
+                                    ✅ MARCAR COMO USADO
+                                </button>
+                            ` : ''}
+                        ` : `
+                            <div style="background: #e74c3c; color: white; padding: 20px; border-radius: 10px; margin: 20px 0;">
+                                <h3>❌ CÓDIGO INVÁLIDO</h3>
+                                <p>Este código não existe ou não é válido.</p>
+                            </div>
+                        `}
+                        
+                        <button onclick="location.href='${window.location.pathname}'" style="
+                            background: #3498db;
+                            color: white;
+                            border: none;
+                            padding: 15px 30px;
+                            border-radius: 10px;
+                            cursor: pointer;
+                            font-size: 1.1em;
+                            font-weight: bold;
+                            margin: 10px;
+                        ">
+                            🎰 VOLTAR À ROLETA
+                        </button>
+                    </div>
+                </div>
+            `;
+        }
+        
+        // Função para marcar código como usado
+        function marcarComoUsado(codigo) {
+            const resultados = JSON.parse(localStorage.getItem('todosResultados') || '{}');
+            if (resultados[codigo]) {
+                resultados[codigo].usado = true;
+                localStorage.setItem('todosResultados', JSON.stringify(resultados));
+                location.reload();
+            }
+        }
+        
+        // Função para verificar acesso administrativo
+        function checkAdminAccess() {
+            const adminAuthorized = localStorage.getItem('adminAuthorized');
+            if (adminAuthorized === 'true') {
+                showAdminPage();
+            } else {
+                showLoginPage();
+            }
+        }
+        
+        // Função para mostrar página de login
+        function showLoginPage() {
+            document.querySelector('.slot-content').innerHTML = `
+                <h1 class="title">🔐 ACESSO ADMINISTRATIVO</h1>
+                <p class="subtitle">Digite a senha para acessar o painel</p>
+                
+                <div class="reels-container">
+                    <div style="text-align: center; padding: 20px;">
+                        <div style="margin: 20px 0;">
+                            <label style="color: #ecf0f1; font-size: 1.1em; display: block; margin-bottom: 10px;">
+                                Senha:
+                            </label>
+                            <input type="password" id="passwordInput" placeholder="Digite a senha" style="
+                                padding: 15px;
+                                font-size: 1.1em;
+                                border: 2px solid #3498db;
+                                border-radius: 8px;
+                                width: 250px;
+                                max-width: 90%;
+                                text-align: center;
+                            ">
+                        </div>
+                        
+                        <button onclick="checkPassword()" style="
+                            background: #27ae60;
+                            color: white;
+                            border: none;
+                            padding: 15px 30px;
+                            border-radius: 10px;
+                            cursor: pointer;
+                            font-size: 1.1em;
+                            font-weight: bold;
+                            margin: 10px;
+                        ">
+                            🔓 ENTRAR
+                        </button>
+                        
+                        <div id="loginError" style="margin-top: 20px;"></div>
+                        
+                        <button onclick="location.href='${window.location.pathname}'" style="
+                            background: #e74c3c;
+                            color: white;
+                            border: none;
+                            padding: 15px 30px;
+                            border-radius: 10px;
+                            cursor: pointer;
+                            font-size: 1.1em;
+                            font-weight: bold;
+                            margin: 10px;
+                        ">
+                            🎰 VOLTAR À ROLETA
+                        </button>
+                    </div>
+                </div>
+            `;
+            
+            // Foco no input de senha
+            setTimeout(() => {
+                document.getElementById('passwordInput').focus();
+                
+                // Adicionar evento para Enter
+                document.getElementById('passwordInput').addEventListener('keypress', function(event) {
+                    if (event.key === 'Enter') {
+                        checkPassword();
+                    }
+                });
+            }, 100);
+        }
+        
+        // Função para verificar a senha
+        function checkPassword() {
+            const password = document.getElementById('passwordInput').value;
+            const errorDiv = document.getElementById('loginError');
+            
+            if (password === '220720') {
+                localStorage.setItem('adminAuthorized', 'true');
+                showAdminPage();
+            } else {
+                errorDiv.innerHTML = '<div style="background: #e74c3c; color: white; padding: 15px; border-radius: 8px;">❌ Senha incorreta. Tente novamente.</div>';
+                document.getElementById('passwordInput').value = '';
+                document.getElementById('passwordInput').focus();
+            }
+        }
+        
+        // Função para mostrar página de administração
+        function showAdminPage() {
+            document.querySelector('.slot-content').innerHTML = `
+                <h1 class="title">🔧 PAINEL ADMINISTRATIVO</h1>
+                <p class="subtitle">Validação de códigos de desconto</p>
+                
+                <div class="reels-container">
+                    <div style="text-align: center; padding: 20px;">
+                        <div style="margin: 20px 0;">
+                            <label style="color: #ecf0f1; font-size: 1.1em; display: block; margin-bottom: 10px;">
+                                Digite o código para validar:
+                            </label>
+                            <input type="text" id="codeInput" placeholder="Ex: DESC-ABC123-XYZ" style="
+                                padding: 15px;
+                                font-size: 1.1em;
+                                border: 2px solid #3498db;
+                                border-radius: 8px;
+                                width: 300px;
+                                max-width: 90%;
+                                text-align: center;
+                                font-family: monospace;
+                                text-transform: uppercase;
+                            ">
+                        </div>
+                        
+                        <button onclick="validateCodeFromInput()" style="
+                            background: #27ae60;
+                            color: white;
+                            border: none;
+                            padding: 15px 30px;
+                            border-radius: 10px;
+                            cursor: pointer;
+                            font-size: 1.1em;
+                            font-weight: bold;
+                            margin: 10px;
+                        ">
+                            🔍 VALIDAR CÓDIGO
+                        </button>
+                        
+                        <div id="validationResult" style="margin-top: 20px;"></div>
+                        
+                        <button onclick="location.href='${window.location.pathname}'" style="
+                            background: #3498db;
+                            color: white;
+                            border: none;
+                            padding: 15px 30px;
+                            border-radius: 10px;
+                            cursor: pointer;
+                            font-size: 1.1em;
+                            font-weight: bold;
+                            margin: 10px;
+                        ">
+                            🎰 VOLTAR À ROLETA
+                        </button>
+                        
+                        <button onclick="logoutAdmin()" style="
+                            background: #e74c3c;
+                            color: white;
+                            border: none;
+                            padding: 10px 20px;
+                            border-radius: 5px;
+                            cursor: pointer;
+                            font-size: 0.9em;
+                            margin: 10px;
+                        ">
+                            🚪 SAIR DO ADMIN
+                        </button>
+                    </div>
+                </div>
+            `;
+            
+            // Foco no input
+            setTimeout(() => {
+                document.getElementById('codeInput').focus();
+            }, 100);
+        }
+        
+        // Função para validar código digitado
+        function validateCodeFromInput() {
+            const codigo = document.getElementById('codeInput').value.trim().toUpperCase();
+            const resultDiv = document.getElementById('validationResult');
+            
+            if (!codigo) {
+                resultDiv.innerHTML = '<div style="background: #e74c3c; color: white; padding: 15px; border-radius: 8px;">Por favor, digite um código.</div>';
+                return;
+            }
+            
+            const resultados = JSON.parse(localStorage.getItem('todosResultados') || '{}');
+            const resultado = resultados[codigo];
+            
+            if (resultado) {
+                resultDiv.innerHTML = `
+                    <div style="background: #27ae60; color: white; padding: 20px; border-radius: 10px; margin: 20px 0;">
+                        <h3>✅ CÓDIGO VÁLIDO</h3>
+                        <div style="font-size: 3em; margin: 20px 0;">
+                            ${resultado.digits[0]}${resultado.digits[1]}%
+                        </div>
+                        <p style="font-size: 1.2em; margin: 10px 0;">
+                            Desconto: ${resultado.desconto}%
+                        </p>
+                        <p style="font-size: 0.9em; opacity: 0.8;">
+                            Criado em: ${new Date(resultado.timestamp).toLocaleString()}
+                        </p>
+                        <p style="font-size: 0.9em; opacity: 0.8;">
+                            Status: ${resultado.usado ? '❌ Já utilizado' : '✅ Disponível'}
+                        </p>
+                        ${!resultado.usado ? `
+                            <button onclick="marcarComoUsadoAdmin('${codigo}')" style="
+                                background: #e74c3c;
+                                color: white;
+                                border: none;
+                                padding: 15px 30px;
+                                border-radius: 10px;
+                                cursor: pointer;
+                                font-size: 1.1em;
+                                font-weight: bold;
+                                margin: 10px;
+                            ">
+                                ✅ MARCAR COMO USADO
+                            </button>
+                        ` : ''}
+                    </div>
+                `;
+            } else {
+                resultDiv.innerHTML = `
+                    <div style="background: #e74c3c; color: white; padding: 20px; border-radius: 10px; margin: 20px 0;">
+                        <h3>❌ CÓDIGO INVÁLIDO</h3>
+                        <p>Este código não existe ou não é válido.</p>
+                    </div>
+                `;
+            }
+        }
+        
+        // Função para marcar como usado no painel admin
+        function marcarComoUsadoAdmin(codigo) {
+            marcarComoUsado(codigo);
+            setTimeout(() => {
+                validateCodeFromInput();
+            }, 100);
+        }
+        
+        // Função para fazer logout do admin
+        function logoutAdmin() {
+            localStorage.removeItem('adminAuthorized');
+            location.href = window.location.pathname;
+        }
     </script>
 </body>
 </html>
