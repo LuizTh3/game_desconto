@@ -301,9 +301,58 @@
         </div>
     </div>
 
+    <!-- Firebase SDK -->
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
+
     <script>
         // Lista de descontos disponíveis
         const discounts = [5, 10, 15, 20, 25, 30, 35, 40, 45, 50, 60, 70];
+        
+        // Configuração do Firebase
+        const firebaseConfig = {
+            apiKey: "AIzaSyByGvHSjG1GYU44aclcq7Zwn_yhgiMZIxo",
+            authDomain: "roleta-burger068.firebaseapp.com",
+            databaseURL: "https://roleta-burger068-default-rtdb.firebaseio.com",
+            projectId: "roleta-burger068",
+            storageBucket: "roleta-burger068.firebasestorage.app",
+            messagingSenderId: "619152159725",
+            appId: "1:619152159725:web:e3fe60a04f46b8cefc6de4",
+            measurementId: "G-VJFV9NY5H6"
+        };
+        
+        // Inicializar Firebase
+        firebase.initializeApp(firebaseConfig);
+        const database = firebase.database();
+        
+        // Função para carregar cupons (sincronização real com Firebase)
+        async function getCupons() {
+            try {
+                const snapshot = await database.ref('cupons').once('value');
+                const cupons = snapshot.val() || [];
+                // Salva local como backup
+                localStorage.setItem('cuponsDisponiveis', JSON.stringify(cupons));
+                return cupons;
+            } catch (error) {
+                console.error('Erro ao carregar cupons online:', error);
+                // Fallback para localStorage
+                return JSON.parse(localStorage.getItem('cuponsDisponiveis') || '[]');
+            }
+        }
+        
+        // Função para salvar cupons (sincronização real com Firebase)
+        async function setCupons(cupons) {
+            try {
+                await database.ref('cupons').set(cupons);
+                localStorage.setItem('cuponsDisponiveis', JSON.stringify(cupons));
+                return cupons;
+            } catch (error) {
+                console.error('Erro ao salvar cupons online:', error);
+                // Fallback para localStorage
+                localStorage.setItem('cuponsDisponiveis', JSON.stringify(cupons));
+                return cupons;
+            }
+        }
         
         // Função para gerar código determinístico
         function generateDeterministicCode(desconto, timestamp) {
@@ -433,14 +482,14 @@
         }
 
         // Função principal do caça-níquel
-        function spin() {
+        async function spin() {
             // Verifica se o usuário já jogou
             if (localStorage.getItem('jaJogou') === 'true') {
                 return;
             }
             
             // Verifica se há cupons disponíveis
-            const cupons = JSON.parse(localStorage.getItem('cuponsDisponiveis') || '[]');
+            const cupons = await getCupons();
             const cuponsDisponiveis = cupons.filter(c => (c.quantidade - c.usado) > 0);
             
             if (cuponsDisponiveis.length === 0) {
@@ -467,7 +516,7 @@
             animateReel(reel3, 2000, '%');
             
             // Mostra o resultado após as animações
-            setTimeout(() => {
+            setTimeout(async () => {
                 let message = '';
                 let isWinner = false;
                 
@@ -490,7 +539,7 @@
                 }
                 
                 // Consome o cupom (decrementa quantidade)
-                consumirCupom(cupomSorteado.id);
+                await consumirCupom(cupomSorteado.id);
                 
                 const resultData = {
                     cupomNome: cupomSorteado.nome,
@@ -518,13 +567,13 @@
         }
         
         // Função para consumir cupom
-        function consumirCupom(cupomId) {
-            const cupons = JSON.parse(localStorage.getItem('cuponsDisponiveis') || '[]');
+        async function consumirCupom(cupomId) {
+            const cupons = await getCupons();
             const cupom = cupons.find(c => c.id === cupomId);
             
             if (cupom) {
                 cupom.usado += 1;
-                localStorage.setItem('cuponsDisponiveis', JSON.stringify(cupons));
+                await setCupons(cupons);
             }
         }
 
@@ -676,8 +725,8 @@
         }
         
         // Atualiza lista de cupons disponíveis na página principal
-        function atualizarCuponsDisponiveis() {
-            const cupons = JSON.parse(localStorage.getItem('cuponsDisponiveis') || '[]');
+        async function atualizarCuponsDisponiveis() {
+            const cupons = await getCupons();
             const cuponsDisponiveis = cupons.filter(c => (c.quantidade - c.usado) > 0);
             const container = document.getElementById('cuponsDisponiveis');
             
@@ -1062,7 +1111,7 @@
         }
         
         // Função para criar cupom
-        function criarCupom() {
+        async function criarCupom() {
             const nome = document.getElementById('cupomNome').value.trim().toUpperCase();
             const desconto = parseInt(document.getElementById('cupomDesconto').value);
             const quantidade = parseInt(document.getElementById('cupomQuantidade').value);
@@ -1083,7 +1132,7 @@
             }
             
             // Pega cupons existentes
-            const cupons = JSON.parse(localStorage.getItem('cuponsDisponiveis') || '[]');
+            const cupons = await getCupons();
             
             // Verifica se já existe um cupom com esse nome
             const existente = cupons.find(c => c.nome === nome);
@@ -1101,8 +1150,8 @@
                 });
             }
             
-            // Salva no localStorage
-            localStorage.setItem('cuponsDisponiveis', JSON.stringify(cupons));
+            // Salva online e local
+            await setCupons(cupons);
             
             // Limpa os campos
             document.getElementById('cupomNome').value = '';
@@ -1114,8 +1163,8 @@
         }
         
         // Função para atualizar lista de cupons
-        function atualizarListaCupons() {
-            const cupons = JSON.parse(localStorage.getItem('cuponsDisponiveis') || '[]');
+        async function atualizarListaCupons() {
+            const cupons = await getCupons();
             const container = document.getElementById('cuponsLista');
             
             if (cupons.length === 0) {
@@ -1188,11 +1237,11 @@
         }
         
         // Função para remover cupom
-        function removerCupom(id) {
+        async function removerCupom(id) {
             if (confirm('Tem certeza que deseja remover este cupom?')) {
-                let cupons = JSON.parse(localStorage.getItem('cuponsDisponiveis') || '[]');
+                let cupons = await getCupons();
                 cupons = cupons.filter(c => c.id !== id);
-                localStorage.setItem('cuponsDisponiveis', JSON.stringify(cupons));
+                await setCupons(cupons);
                 atualizarListaCupons();
             }
         }
