@@ -3,7 +3,9 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>🎰 Caça-Níquel de Descontos</title>
+    <title> Burger Roleta - Cupons de Desconto</title>
+    <link rel="icon" type="image/jpeg" href="assets/icon/icon.jpg">
+    <link rel="apple-touch-icon" href="assets/icon/icon.jpg">
     <style>
         * {
             margin: 0;
@@ -13,19 +15,34 @@
 
         body {
             font-family: 'Arial', sans-serif;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            background: linear-gradient(135deg, #3b3b3b 0%, #1f1d1d 50%, #000000 100%);
             min-height: 100vh;
             display: flex;
             justify-content: center;
             align-items: center;
             overflow-x: hidden;
+            position: relative;
+        }
+        
+        body::before {
+            content: '';
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><circle cx="50" cy="50" r="2" fill="rgba(255,255,255,0.1)"/></svg>') repeat;
+            background-size: 50px 50px;
+            pointer-events: none;
+            z-index: -1;
         }
 
         .slot-machine {
-            background: linear-gradient(145deg, #2c3e50, #34495e);
+            background: linear-gradient(145deg, #ffffff, #f8f9fa);
+            border: 3px solid #dc3545;
             border-radius: 20px;
             padding: 40px;
-            box-shadow: 0 25px 50px rgba(0, 0, 0, 0.3);
+            box-shadow: 0 25px 50px rgba(220, 53, 69, 0.4);
             text-align: center;
             position: relative;
             overflow: hidden;
@@ -38,7 +55,7 @@
             left: -50%;
             width: 200%;
             height: 200%;
-            background: conic-gradient(transparent, rgba(255, 255, 255, 0.1), transparent);
+            background: conic-gradient(transparent, rgba(220, 53, 69, 0.1), transparent);
             animation: rotate 4s linear infinite;
             z-index: 1;
         }
@@ -54,27 +71,40 @@
         }
 
         .title {
-            color: #f39c12;
+            color: #dc3545;
             font-size: 2.5em;
             margin-bottom: 20px;
-            text-shadow: 0 0 20px rgba(243, 156, 18, 0.5);
+            text-shadow: 0 0 20px rgba(220, 53, 69, 0.5);
             font-weight: bold;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 15px;
+        }
+        
+        .logo-icon {
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            box-shadow: 0 4px 15px rgba(220, 53, 69, 0.3);
+            border: 3px solid #dc3545;
         }
 
         .subtitle {
-            color: #ecf0f1;
+            color: #6c757d;
             font-size: 1.2em;
             margin-bottom: 30px;
             opacity: 0.9;
+            font-weight: 500;
         }
 
         .reels-container {
-            background: linear-gradient(145deg, #1a252f, #2c3e50);
+            background: linear-gradient(145deg, #fff, #f8f9fa);
             border-radius: 15px;
             padding: 30px;
             margin: 30px 0;
-            border: 3px solid #f39c12;
-            box-shadow: inset 0 0 20px rgba(0, 0, 0, 0.3);
+            border: 3px solid #dc3545;
+            box-shadow: inset 0 0 20px rgba(220, 53, 69, 0.1);
         }
 
         .reels {
@@ -87,12 +117,12 @@
         .reel {
             width: 120px;
             height: 150px;
-            background: linear-gradient(145deg, #ecf0f1, #bdc3c7);
+            background: linear-gradient(145deg, #ffffff, #f8f9fa);
             border-radius: 10px;
-            border: 3px solid #34495e;
+            border: 3px solid #dc3545;
             position: relative;
             overflow: hidden;
-            box-shadow: inset 0 0 15px rgba(0, 0, 0, 0.2);
+            box-shadow: inset 0 0 15px rgba(220, 53, 69, 0.2);
         }
 
         .reel-content {
@@ -102,8 +132,8 @@
             transform: translate(-50%, -50%);
             font-size: 2.5em;
             font-weight: bold;
-            color: #2c3e50;
-            text-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+            color: #dc3545;
+            text-shadow: 0 2px 4px rgba(220, 53, 69, 0.2);
             transition: all 0.3s ease;
         }
 
@@ -120,7 +150,7 @@
         }
 
         .spin-button {
-            background: linear-gradient(145deg, #e74c3c, #c0392b);
+            background: linear-gradient(145deg, #dc3545, #c82333);
             color: white;
             border: none;
             padding: 20px 40px;
@@ -128,20 +158,21 @@
             font-weight: bold;
             border-radius: 50px;
             cursor: pointer;
-            box-shadow: 0 8px 20px rgba(231, 76, 60, 0.3);
+            box-shadow: 0 8px 20px rgba(220, 53, 69, 0.4);
             transition: all 0.3s ease;
             text-transform: uppercase;
             letter-spacing: 1px;
+            border: 2px solid #fff;
         }
 
         .spin-button:hover {
             transform: translateY(-3px);
-            box-shadow: 0 12px 25px rgba(231, 76, 60, 0.4);
+            box-shadow: 0 12px 25px rgba(220, 53, 69, 0.5);
         }
 
         .spin-button:active {
             transform: translateY(0);
-            box-shadow: 0 4px 10px rgba(231, 76, 60, 0.3);
+            box-shadow: 0 4px 10px rgba(220, 53, 69, 0.3);
         }
 
         .spin-button:disabled {
@@ -154,16 +185,17 @@
         .result {
             margin-top: 30px;
             padding: 25px;
-            background: linear-gradient(145deg, #27ae60, #2ecc71);
+            background: linear-gradient(145deg, #28a745, #20c997);
             border-radius: 15px;
             color: white;
             font-size: 1.8em;
             font-weight: bold;
             text-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
-            box-shadow: 0 8px 20px rgba(46, 204, 113, 0.3);
+            box-shadow: 0 8px 20px rgba(40, 167, 69, 0.3);
             opacity: 0;
             transform: translateY(20px);
             transition: all 0.5s ease;
+            border: 2px solid #fff;
         }
 
         .result.show {
@@ -172,34 +204,38 @@
         }
 
         .result.winner {
-            background: linear-gradient(145deg, #f39c12, #e67e22);
+            background: linear-gradient(145deg, #ffc107, #fd7e14);
             animation: pulse 2s infinite;
+            border: 2px solid #fff;
         }
 
         @keyframes pulse {
-            0% { box-shadow: 0 8px 20px rgba(243, 156, 18, 0.3); }
-            50% { box-shadow: 0 8px 30px rgba(243, 156, 18, 0.6); }
-            100% { box-shadow: 0 8px 20px rgba(243, 156, 18, 0.3); }
+            0% { box-shadow: 0 8px 20px rgba(255, 193, 7, 0.3); }
+            50% { box-shadow: 0 8px 30px rgba(255, 193, 7, 0.6); }
+            100% { box-shadow: 0 8px 20px rgba(255, 193, 7, 0.3); }
         }
 
         .discount-list {
             margin-top: 30px;
             padding: 20px;
-            background: rgba(255, 255, 255, 0.1);
+            background: rgba(255, 255, 255, 0.9);
             border-radius: 10px;
             backdrop-filter: blur(10px);
+            border: 2px solid #dc3545;
         }
 
         .discount-list h3 {
-            color: #f39c12;
+            color: #dc3545;
             margin-bottom: 15px;
             font-size: 1.2em;
+            font-weight: bold;
         }
 
         .discount-list p {
-            color: #ecf0f1;
+            color: #2c3e50;
             font-size: 0.9em;
-            opacity: 0.8;
+            opacity: 1;
+            font-weight: 600;
         }
 
         .particles {
@@ -216,7 +252,7 @@
             position: absolute;
             width: 10px;
             height: 10px;
-            background: #f39c12;
+            background: #dc3545;
             border-radius: 50%;
             animation: fall 3s linear infinite;
         }
@@ -233,27 +269,268 @@
         }
 
         @media (max-width: 768px) {
+            body {
+                padding: 10px;
+                min-height: 100vh;
+                align-items: flex-start;
+            }
+            
             .slot-machine {
-                padding: 20px;
-                margin: 20px;
+                padding: 15px;
+                margin: 10px 0;
+                width: 100%;
+                max-width: 400px;
+                box-shadow: 0 15px 30px rgba(0, 0, 0, 0.3);
             }
             
             .title {
-                font-size: 2em;
+                font-size: 1.8em;
+                margin-bottom: 15px;
+                flex-direction: column;
+                gap: 10px;
+            }
+            
+            .logo-icon {
+                width: 50px;
+                height: 50px;
+            }
+            
+            .subtitle {
+                font-size: 1em;
+                margin-bottom: 20px;
+            }
+            
+            .reels-container {
+                padding: 20px;
+                margin: 20px 0;
             }
             
             .reels {
-                flex-direction: column;
-                align-items: center;
+                flex-direction: row;
+                justify-content: center;
+                gap: 10px;
+                margin-bottom: 20px;
             }
             
             .reel {
-                width: 100px;
-                height: 120px;
+                width: 80px;
+                height: 100px;
+                border: 2px solid #34495e;
             }
             
             .reel-content {
-                font-size: 2em;
+                font-size: 1.8em;
+            }
+            
+            .spin-button {
+                padding: 15px 25px;
+                font-size: 1.2em;
+                width: 100%;
+                max-width: 250px;
+            }
+            
+            .result {
+                padding: 15px;
+                font-size: 1.4em;
+                margin-top: 20px;
+            }
+            
+            .discount-list {
+                padding: 15px;
+                margin-top: 20px;
+            }
+            
+            .discount-list h3 {
+                font-size: 1em;
+                margin-bottom: 10px;
+            }
+            
+            .discount-list p {
+                font-size: 0.8em;
+            }
+            
+            /* Botões responsivos */
+            button {
+                padding: 12px 20px !important;
+                font-size: 0.9em !important;
+                margin: 8px 5px !important;
+                border-radius: 8px !important;
+                max-width: 100%;
+                word-wrap: break-word;
+            }
+            
+            /* Compartilhamento responsivo */
+            #shareContainer {
+                padding: 15px !important;
+                margin-top: 15px !important;
+            }
+            
+            #shareContainer h3 {
+                font-size: 1.1em !important;
+                margin-bottom: 10px !important;
+            }
+            
+            #shareContainer div {
+                font-size: 1em !important;
+                padding: 10px !important;
+                margin: 10px 0 !important;
+            }
+            
+            #shareContainer button {
+                width: 100% !important;
+                max-width: 200px !important;
+                margin: 5px 0 !important;
+                padding: 12px !important;
+                font-size: 0.9em !important;
+            }
+        }
+        
+        @media (max-width: 480px) {
+            .slot-machine {
+                padding: 10px;
+                margin: 5px 0;
+            }
+            
+            .title {
+                font-size: 1.5em;
+                margin-bottom: 10px;
+            }
+            
+            .subtitle {
+                font-size: 0.9em;
+                margin-bottom: 15px;
+            }
+            
+            .reels-container {
+                padding: 15px;
+                margin: 15px 0;
+            }
+            
+            .reels {
+                gap: 8px;
+            }
+            
+            .reel {
+                width: 70px;
+                height: 90px;
+            }
+            
+            .reel-content {
+                font-size: 1.5em;
+            }
+            
+            .spin-button {
+                padding: 12px 20px;
+                font-size: 1em;
+                width: 100%;
+            }
+            
+            .result {
+                padding: 12px;
+                font-size: 1.2em;
+                margin-top: 15px;
+            }
+            
+            .discount-list {
+                padding: 12px;
+                margin-top: 15px;
+            }
+            
+            .discount-list h3 {
+                font-size: 0.9em;
+            }
+            
+            .discount-list p {
+                font-size: 0.75em;
+            }
+            
+            button {
+                padding: 10px 15px !important;
+                font-size: 0.8em !important;
+                margin: 5px 3px !important;
+            }
+            
+            /* Admin responsivo */
+            .admin-form {
+                flex-direction: column !important;
+                gap: 15px !important;
+                align-items: stretch !important;
+            }
+            
+            .admin-form > div {
+                width: 100% !important;
+            }
+            
+            .admin-form input {
+                width: 100% !important;
+                max-width: none !important;
+                margin-bottom: 10px !important;
+            }
+            
+            .admin-form button {
+                width: 100% !important;
+                max-width: 200px !important;
+                margin: 10px auto !important;
+            }
+        }
+        
+        /* Estilos para admin responsivo */
+        @media (max-width: 768px) {
+            .admin-container {
+                padding: 10px !important;
+            }
+            
+            .admin-form-container {
+                padding: 15px !important;
+                margin: 15px 0 !important;
+            }
+            
+            .admin-form {
+                display: flex !important;
+                flex-direction: column !important;
+                gap: 15px !important;
+                align-items: stretch !important;
+            }
+            
+            .admin-form > div {
+                width: 100% !important;
+            }
+            
+            .admin-form input {
+                width: 100% !important;
+                max-width: none !important;
+                padding: 12px !important;
+                font-size: 1em !important;
+                box-sizing: border-box !important;
+            }
+            
+            .admin-form label {
+                font-size: 0.9em !important;
+                margin-bottom: 5px !important;
+            }
+            
+            .admin-form button {
+                width: 100% !important;
+                max-width: 200px !important;
+                margin: 15px auto !important;
+                padding: 12px !important;
+                font-size: 1em !important;
+            }
+            
+            .cupom-item {
+                flex-direction: column !important;
+                gap: 10px !important;
+                text-align: center !important;
+            }
+            
+            .cupom-item > div {
+                width: 100% !important;
+            }
+            
+            .cupom-item button {
+                width: 100% !important;
+                max-width: 150px !important;
+                margin: 5px auto !important;
             }
         }
     </style>
@@ -263,8 +540,11 @@
     
     <div class="slot-machine">
         <div class="slot-content">
-            <h1 class="title">🎰 CAÇA-NÍQUEL DE DESCONTOS</h1>
-            <p class="subtitle">Teste sua sorte e ganhe descontos incríveis!</p>
+            <h1 class="title">
+                <img src="assets/icon/icon.jpg" alt="Burger Logo" class="logo-icon">
+                 BURGER ROLETA
+            </h1>
+            <p class="subtitle">Teste sua sorte e ganhe cupons de desconto incríveis!</p>
             
             <div class="reels-container">
                 <div class="reels">
@@ -285,17 +565,17 @@
             <div class="result" id="result"></div>
             
             <div class="discount-list">
-                <h3>🎁 Cupons Disponíveis:</h3>
+                <h3>🍔 Cupons Burger Disponíveis:</h3>
                 <p id="cuponsDisponiveis">Carregando cupons...</p>
             </div>
             
             <!-- Botão temporário para testes -->
-            <button id="resetButton" style="margin-top: 20px; padding: 10px 20px; background: #e74c3c; color: white; border: none; border-radius: 5px; cursor: pointer; font-size: 0.9em;">
+            <button id="resetButton" style="margin-top: 20px; padding: 10px 20px; background: linear-gradient(145deg, #dc3545, #c82333); color: white; border: 2px solid #fff; border-radius: 8px; cursor: pointer; font-size: 0.9em; font-weight: bold;">
                 🗑️ LIMPAR RESULTADO (TESTE)
             </button>
             
             <!-- Botão para acesso administrativo -->
-            <button onclick="location.href='?admin=true'" style="margin-top: 10px; padding: 10px 20px; background: #9b59b6; color: white; border: none; border-radius: 5px; cursor: pointer; font-size: 0.9em;">
+            <button onclick="location.href='?admin=true'" style="margin-top: 10px; padding: 10px 20px; background: linear-gradient(145deg, #6c757d, #495057); color: white; border: 2px solid #fff; border-radius: 8px; cursor: pointer; font-size: 0.9em; font-weight: bold;">
                 🔧 ACESSO ADMIN
             </button>
         </div>
@@ -449,7 +729,7 @@
                     particle.style.animationDelay = Math.random() * 3 + 's';
                     particle.style.animationDuration = (Math.random() * 3 + 2) + 's';
                     
-                    const colors = ['#f39c12', '#e74c3c', '#2ecc71', '#3498db', '#9b59b6'];
+                    const colors = ['#dc3545', '#ffc107', '#28a745', '#ffffff', '#fd7e14'];
                     particle.style.background = colors[Math.floor(Math.random() * colors.length)];
                     
                     particlesContainer.appendChild(particle);
@@ -738,7 +1018,7 @@
                 const descontos = cuponsDisponiveis.map(c => `${c.desconto}%`);
                 const descountosUnicos = [...new Set(descontos)].sort((a, b) => parseInt(a) - parseInt(b));
                 container.textContent = descountosUnicos.join(', ');
-                container.style.color = '#ecf0f1';
+                container.style.color = '#2c3e50';
             }
         }
         
@@ -927,13 +1207,13 @@
                 <p class="subtitle">Gerenciamento de cupons de desconto</p>
                 
                 <div class="reels-container">
-                    <div style="text-align: center; padding: 20px;">
+                    <div class="admin-container" style="text-align: center; padding: 20px;">
                         
                         <!-- Seção de Criação de Cupons -->
-                        <div style="background: rgba(255,255,255,0.1); padding: 20px; border-radius: 10px; margin: 20px 0;">
+                        <div class="admin-form-container" style="background: rgba(255,255,255,0.1); padding: 20px; border-radius: 10px; margin: 20px 0;">
                             <h3 style="color: #f39c12; margin-bottom: 15px;">➕ CRIAR NOVO CUPOM</h3>
                             
-                            <div style="display: flex; gap: 10px; justify-content: center; align-items: end; flex-wrap: wrap;">
+                            <div class="admin-form" style="display: flex; gap: 10px; justify-content: center; align-items: end; flex-wrap: wrap;">
                                 <div>
                                     <label style="color: #ecf0f1; font-size: 0.9em; display: block;">Nome do Cupom:</label>
                                     <input type="text" id="cupomNome" placeholder="Ex: DESCONTO10" style="
@@ -1188,7 +1468,7 @@
                 const esgotado = disponivel <= 0;
                 
                 html += `
-                    <div style="
+                    <div class="cupom-item" style="
                         background: ${esgotado ? '#e74c3c' : '#27ae60'};
                         color: white;
                         padding: 15px;
